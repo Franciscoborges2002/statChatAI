@@ -12,7 +12,7 @@ export function Header({ match, onBrowseGames }: Props) {
         ⚽
       </span>
       <div>
-        <div className="header-title">Tactical Copilot</div>
+        <div className="header-title">Stat Chat AI</div>
         {match && (
           <div className="header-match">
             {match.home_team} {match.home_score}–{match.away_score} {match.away_team} ·{" "}
