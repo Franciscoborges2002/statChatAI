@@ -22,5 +22,7 @@ COMPETITIONS_PATH = DATA_DIR / "competitions.json"
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = "gpt-5"
 
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+
 PITCH_LENGTH = 120
 PITCH_WIDTH = 80
