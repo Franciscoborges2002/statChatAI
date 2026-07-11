@@ -7,12 +7,15 @@ already on disk.
 """
 
 import json
+import logging
 import re
 from pathlib import Path
 
 import requests
 
 from . import config
+
+logger = logging.getLogger(__name__)
 
 
 def _read_json(path: Path):
@@ -22,7 +25,9 @@ def _read_json(path: Path):
 
 def _fetch_cached(url: str, path: Path):
     if path.exists():
+        logger.debug("Cache hit for %s", path)
         return _read_json(path)
+    logger.info("Fetching %s", url)
     resp = requests.get(url, timeout=30)
     resp.raise_for_status()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -80,6 +85,7 @@ def list_groups() -> list[dict]:
             f"{config.STATSBOMB_BASE_URL}/competitions.json", config.COMPETITIONS_PATH
         )
     except (requests.RequestException, OSError, ValueError):
+        logger.warning("Could not fetch competitions catalog, falling back to local data", exc_info=True)
         return _finalize(_local_groups())
 
     groups: dict[int, dict] = {}

@@ -1,11 +1,14 @@
 """OpenAI tool-calling loop for /ask."""
 
 import json
+import logging
 
 from openai import OpenAI
 
 from . import config, tools
 from .data_loader import MatchStore
+
+logger = logging.getLogger(__name__)
 
 TOOL_SCHEMAS = [
     {
@@ -259,6 +262,7 @@ def answer_question(store: MatchStore, question: str) -> dict:
 
         for tc in msg.tool_calls:
             tool_input = json.loads(tc.function.arguments) if tc.function.arguments else {}
+            logger.info("LLM called tool %s with args %s", tc.function.name, tool_input)
             result = _run_tool(store, tc.function.name, tool_input)
             result = _round_floats(result)
             if used_tool_name is None:
@@ -272,6 +276,7 @@ def answer_question(store: MatchStore, question: str) -> dict:
                 }
             )
     else:
+        logger.warning("Tool-calling loop exhausted for question: %r", question)
         answer_text = "I ran out of turns trying to answer that — try rephrasing the question."
 
     visualization = (

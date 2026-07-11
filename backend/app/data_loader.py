@@ -1,7 +1,11 @@
+import logging
+
 import pandas as pd
 
 from . import config
 from .games import _fetch_cached
+
+logger = logging.getLogger(__name__)
 
 
 def parse_events(raw_events: list) -> pd.DataFrame:
@@ -61,6 +65,9 @@ class MatchStore:
         self.season_id = season_id
         self.match_id = match_id
 
+        logger.info(
+            "Loading match %s (competition=%s season=%s)", match_id, competition_id, season_id
+        )
         base = config.STATSBOMB_BASE_URL
         raw_events = _fetch_cached(
             f"{base}/events/{match_id}.json", config.DATA_DIR / f"events_{match_id}.json"
@@ -81,6 +88,7 @@ class MatchStore:
         self.lineups: dict = {team["team_name"]: team for team in raw_lineups}
         self.meta: dict = meta
         self.nicknames: dict = build_nicknames(self.lineups)
+        logger.info("Match %s loaded: %d events, %d teams", match_id, len(self.events), len(self.lineups))
 
     @property
     def team_names(self):
