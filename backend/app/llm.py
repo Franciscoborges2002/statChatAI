@@ -45,7 +45,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "player_summary",
-            "description": "Get a summary of one player's match: passes, pass accuracy, shots, goals, xG, key passes, touches, position. Use for 'how did X play' or general stat-line questions about a single player — NOT for questions about where on the pitch they operated (use player_heatmap for that).",
+            "description": "Get a summary of one player's match: total touch COUNT (a number, not locations), passes, pass accuracy, shots, goals, xG, key passes, position. Use for 'how did X play' or overall stat-line questions. Do NOT use this if the question asks WHERE on the pitch a player touched the ball, operated, or was positioned — that's player_heatmap.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -60,7 +60,7 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "player_heatmap",
-            "description": "Get a spatial heatmap of where one player touched the ball across the pitch, binned into zones. Use specifically for 'where did X touch/play/operate on the pitch', positioning, or movement questions — not for pass accuracy, shots, or other general stats (use player_summary for those).",
+            "description": "Get the pitch LOCATIONS where one player touched the ball, binned into zones (a heatmap) — this is about WHERE, not how many. Use whenever the question asks where a player touched the ball, played, operated, or was positioned on the pitch (e.g. 'where did X touch the ball most', 'what areas did X play in', 'X's heatmap'). Do NOT use player_summary for these — it only has a touch count, no locations.",
             "parameters": {
                 "type": "object",
                 "properties": {
