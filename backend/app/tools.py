@@ -2,6 +2,7 @@
 
 from collections import Counter, defaultdict
 
+from . import config
 from .data_loader import MatchStore
 
 
@@ -126,6 +127,47 @@ def player_summary(store: MatchStore, player: str):
         "goals": int(goals),
         "xg": _round(sum(shot_xgs), 2),
         "key_passes": int(key_passes),
+    }
+
+
+def player_heatmap(store: MatchStore, player: str, grid_x: int = 12, grid_y: int = 8):
+    df = store.events
+    mine = df[_match_player(df["player"], player)]
+    mine = mine[mine["x"].notna() & mine["y"].notna()]
+
+    if mine.empty:
+        return {"player": player, "found": False, "cells": []}
+
+    resolved_name = store.short_name(mine["player"].mode().iloc[0])
+
+    cell_w = config.PITCH_LENGTH / grid_x
+    cell_h = config.PITCH_WIDTH / grid_y
+
+    counts = Counter()
+    for _, row in mine.iterrows():
+        cx = min(int(row["x"] // cell_w), grid_x - 1)
+        cy = min(int(row["y"] // cell_h), grid_y - 1)
+        counts[(cx, cy)] += 1
+
+    max_count = max(counts.values())
+    cells = [
+        {
+            "x": _round(cx * cell_w + cell_w / 2, 1),
+            "y": _round(cy * cell_h + cell_h / 2, 1),
+            "count": count,
+            "intensity": _round(count / max_count, 3),
+        }
+        for (cx, cy), count in counts.items()
+    ]
+    cells.sort(key=lambda c: c["count"], reverse=True)
+
+    return {
+        "player": resolved_name,
+        "found": True,
+        "grid_x": grid_x,
+        "grid_y": grid_y,
+        "touches": int(len(mine)),
+        "cells": cells,
     }
 
 

@@ -45,7 +45,22 @@ TOOL_SCHEMAS = [
         "type": "function",
         "function": {
             "name": "player_summary",
-            "description": "Get a summary of one player's match: passes, pass accuracy, shots, goals, xG, key passes, touches, position. Use for 'how did X play' or heatmap-style questions about a single player.",
+            "description": "Get a summary of one player's match: passes, pass accuracy, shots, goals, xG, key passes, touches, position. Use for 'how did X play' or general stat-line questions about a single player — NOT for questions about where on the pitch they operated (use player_heatmap for that).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "player": {"type": "string", "description": "Player name (partial match), e.g. Messi"},
+                },
+                "required": ["player"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "player_heatmap",
+            "description": "Get a spatial heatmap of where one player touched the ball across the pitch, binned into zones. Use specifically for 'where did X touch/play/operate on the pitch', positioning, or movement questions — not for pass accuracy, shots, or other general stats (use player_summary for those).",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -112,6 +127,8 @@ def _run_tool(store: MatchStore, name: str, tool_input: dict):
         return tools.chances_created(store, **tool_input)
     if name == "player_summary":
         return tools.player_summary(store, **tool_input)
+    if name == "player_heatmap":
+        return tools.player_heatmap(store, **tool_input)
     if name == "team_xg":
         return tools.team_xg(store)
     if name == "pass_network":
@@ -137,6 +154,20 @@ def _visualization_for(tool_name: str, tool_result) -> dict:
             "type": "momentum",
             "title": "Momentum over the match",
             "data": {"series": tool_result["series"], "goals": tool_result["goals"]},
+        }
+
+    if tool_name == "player_heatmap" and tool_result.get("found"):
+        r = tool_result
+        return {
+            "type": "player_heatmap",
+            "title": f"{r['player']} — touch heatmap",
+            "data": {
+                "cells": r["cells"],
+                "grid_x": r["grid_x"],
+                "grid_y": r["grid_y"],
+                "pitch_length": config.PITCH_LENGTH,
+                "pitch_width": config.PITCH_WIDTH,
+            },
         }
 
     if tool_name == "player_summary" and tool_result.get("found"):
@@ -184,6 +215,15 @@ def _stats_for(tool_name: str, tool_result) -> list[dict]:
             {"label": "Goals", "value": str(r["goals"])},
             {"label": "xG", "value": f"{r['xg']:.2f}"},
             {"label": "Pass acc.", "value": f"{r['pass_accuracy_pct']}%"},
+        ]
+
+    if tool_name == "player_heatmap" and tool_result.get("found"):
+        r = tool_result
+        top_cell = max(r["cells"], key=lambda c: c["count"]) if r["cells"] else None
+        return [
+            {"label": "Touches", "value": str(r["touches"])},
+            {"label": "Zones covered", "value": str(len(r["cells"]))},
+            {"label": "Busiest zone", "value": str(top_cell["count"]) if top_cell else "0"},
         ]
 
     if tool_name == "pass_network":
