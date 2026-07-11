@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./venv/Scripts/python.exe -m py_compile app/__init__.py app/config.py app/data_loader.py app/llm.py app/main.py app/tools.py)",
+      "Bash(./venv/Scripts/python.exe -c \"from app.main import app; print\\('IMPORT OK'\\)\")",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(./venv/Scripts/python.exe -c ' *)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://127.0.0.1:8000/games/43/106 -o \"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--WINDOWS-System32\\\\c91ae37a-8f50-49f3-85e5-b08e40717f57\\\\scratchpad\\\\wc2022.json\")",
+      "Bash('C:\\\\Users\\\\User\\\\tactical-copilot\\\\backend\\\\venv\\\\Scripts\\\\python.exe' -c ' *)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://127.0.0.1:8000/games/9999/9999)",
+      "Bash(powershell -NoProfile -Command 'Get-Process | Where-Object { $_.ProcessName -match '\\\\''python|node'\\\\'' } | Select-Object Id, ProcessName, Path | Format-Table -AutoSize')"
+    ]
+  }
+}
