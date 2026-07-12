@@ -5,6 +5,7 @@ interface Props {
   nodes: PassNetworkNode[];
   edges: PassNetworkEdge[];
   color: string;
+  team?: string;
 }
 
 const PITCH_LENGTH = 120;
@@ -26,8 +27,12 @@ function lastName(fullName: string) {
   return parts[parts.length - 1];
 }
 
-export function PassNetwork({ nodes, edges, color }: Props) {
+export function PassNetwork({ nodes, edges, color, team }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+
+  const ariaLabel = team
+    ? `${team} pass network: ${nodes.length} players, ${edges.length} passing links`
+    : "Pass network";
 
   const nodeByName = useMemo(() => {
     const m = new Map<string, PassNetworkNode>();
@@ -47,7 +52,7 @@ export function PassNetwork({ nodes, edges, color }: Props) {
   }
 
   return (
-    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} width="100%" height="auto" role="img" aria-label="Pass network">
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} width="100%" height="auto" role="img" aria-label={ariaLabel}>
       <rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="var(--pitch-fill)" rx={8} />
       <rect x={PAD} y={PAD} width={VIEW_W - 2 * PAD} height={VIEW_H - 2 * PAD} fill="none" stroke="var(--pitch-line)" strokeWidth={2} />
       <line x1={VIEW_W / 2} y1={PAD} x2={VIEW_W / 2} y2={VIEW_H - PAD} stroke="var(--pitch-line)" strokeWidth={1.5} />
@@ -89,8 +94,8 @@ export function PassNetwork({ nodes, edges, color }: Props) {
               x={scaleX(n.x)}
               y={scaleY(n.y) + r + 12}
               textAnchor="middle"
-              fontSize={10}
-              fill="var(--text-secondary)"
+              fontSize={11}
+              fill="var(--muted-foreground)"
             >
               {lastName(n.player)}
             </text>

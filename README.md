@@ -1,4 +1,4 @@
-# Tactical Copilot
+# Stat Chat AI
 
 AI-powered football match analysis for the 2022 FIFA World Cup Final (Argentina vs France). Ask a
 natural-language question about the match and get a written answer plus an auto-generated

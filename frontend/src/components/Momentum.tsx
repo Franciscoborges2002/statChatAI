@@ -32,6 +32,10 @@ export function Momentum({ series, goals, teamColors }: Props) {
   const maxMinute = minutes.length ? minutes[minutes.length - 1] : 90;
   const maxValue = Math.max(1, ...series.map((p) => p.value));
 
+  const ariaLabel = teams.length
+    ? `Momentum over the match between ${teams.join(" and ")}, showing team involvement per 5-minute window across ${maxMinute} minutes`
+    : "Momentum over the match";
+
   const x = d3.scaleLinear().domain([0, maxMinute]).range([MARGIN.left, VIEW_W - MARGIN.right]);
   const y = d3
     .scaleLinear()
@@ -68,20 +72,49 @@ export function Momentum({ series, goals, teamColors }: Props) {
 
   return (
     <div style={{ position: "relative" }}>
-      <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} width="100%" height="auto" role="img" aria-label="Momentum over the match">
+      <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} width="100%" height="auto" role="img" aria-label={ariaLabel}>
         {yTicks.map((t) => (
           <g key={t}>
             <line x1={MARGIN.left} x2={VIEW_W - MARGIN.right} y1={y(t)} y2={y(t)} stroke="var(--gridline)" strokeWidth={1} />
-            <text x={MARGIN.left - 8} y={y(t)} textAnchor="end" dominantBaseline="middle" fontSize={10} fill="var(--text-muted)">
+            <text x={MARGIN.left - 8} y={y(t)} textAnchor="end" dominantBaseline="middle" fontSize={12} fill="var(--muted-foreground)">
               {t}
             </text>
           </g>
         ))}
         {xTicks.map((t) => (
-          <text key={t} x={x(t)} y={VIEW_H - MARGIN.bottom + 18} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
+          <text key={t} x={x(t)} y={VIEW_H - MARGIN.bottom + 18} textAnchor="middle" fontSize={12} fill="var(--muted-foreground)">
             {t}'
           </text>
         ))}
+
+        {/* Period breaks: HT at 45', FT at 90' when the match ran into extra time */}
+        {[
+          { minute: 45, label: "HT", show: maxMinute > 45 },
+          { minute: 90, label: "FT", show: maxMinute > 90 },
+        ]
+          .filter((p) => p.show)
+          .map((p) => (
+            <g key={p.label}>
+              <line
+                x1={x(p.minute)}
+                x2={x(p.minute)}
+                y1={MARGIN.top}
+                y2={VIEW_H - MARGIN.bottom}
+                stroke="var(--baseline)"
+                strokeWidth={1}
+                strokeDasharray="4,4"
+              />
+              <text
+                x={x(p.minute)}
+                y={MARGIN.top - 4}
+                textAnchor="middle"
+                fontSize={10}
+                fill="var(--muted-foreground)"
+              >
+                {p.label}
+              </text>
+            </g>
+          ))}
 
         {teams.map((team) => (
           <path key={`area-${team}`} d={area(byTeam.get(team) ?? []) ?? undefined} fill={teamColors[team] ?? "var(--series-1)"} opacity={0.1} />

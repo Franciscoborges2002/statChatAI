@@ -49,12 +49,34 @@ export async function getSeasonGames(
   return body.games;
 }
 
-export async function askQuestion(question: string): Promise<AskResponse> {
-  const res = await fetch(`${BASE_URL}/ask`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
-  });
-  if (!res.ok) throw new Error("Failed to get an answer from Copilot");
-  return res.json();
+const ASK_TIMEOUT_MS = 45_000;
+
+export async function askQuestion(question: string, signal?: AbortSignal): Promise<AskResponse> {
+  const timeoutController = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    timeoutController.abort();
+  }, ASK_TIMEOUT_MS);
+  const onExternalAbort = () => timeoutController.abort();
+  signal?.addEventListener("abort", onExternalAbort);
+
+  try {
+    const res = await fetch(`${BASE_URL}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+      signal: timeoutController.signal,
+    });
+    if (!res.ok) throw new Error("Failed to get an answer from Copilot");
+    return await res.json();
+  } catch (err) {
+    if (timeoutController.signal.aborted) {
+      throw new Error(timedOut ? "Copilot took too long to respond — please try again." : "Question canceled.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+    signal?.removeEventListener("abort", onExternalAbort);
+  }
 }

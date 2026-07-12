@@ -71,6 +71,8 @@ export interface AskResponse {
 
 export interface MatchMeta {
   match_id: number;
+  competition_id: number;
+  season_id: number;
   competition: string;
   season: string;
   home_team: string;
@@ -107,7 +109,7 @@ export interface GameSummary {
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   text: string;
   hasVisualization?: boolean;
 }

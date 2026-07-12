@@ -1,94 +1,177 @@
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ChartSpline, MessageSquareText } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Visualization, StatCard, MatchMeta } from "../types";
 import { ShotMap } from "./ShotMap";
 import { PassNetwork } from "./PassNetwork";
 import { Momentum } from "./Momentum";
 import { PlayerRadar } from "./PlayerRadar";
 import { StatsCards } from "./StatsCards";
+import { ChartLegend } from "./ChartLegend";
+
+/** Decorative halfway line + center circle behind empty states. */
+function CenterCircleMotif() {
+  return (
+    <svg
+      viewBox="0 0 200 120"
+      className="pointer-events-none absolute inset-0 m-auto h-40 w-auto opacity-15"
+      aria-hidden="true"
+      fill="none"
+      stroke="var(--pitch-line)"
+      strokeWidth="2"
+    >
+      <line x1="100" y1="4" x2="100" y2="116" />
+      <circle cx="100" cy="60" r="34" />
+      <circle cx="100" cy="60" r="3" fill="var(--pitch-line)" stroke="none" />
+    </svg>
+  );
+}
 
 interface Props {
   visualization: Visualization | null;
   stats: StatCard[];
   match: MatchMeta | null;
+  loading?: boolean;
 }
 
-export function VizCanvas({ visualization, stats, match }: Props) {
+export function VizCanvas({ visualization, stats, match, loading = false }: Props) {
+  const reduceMotion = useReducedMotion();
   const teamColors: Record<string, string> = match
     ? { [match.home_team]: "var(--series-1)", [match.away_team]: "var(--series-2)" }
     : {};
 
+  const fade = reduceMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 6 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.25, ease: "easeOut" as const },
+      };
+
   return (
-    <section className="panel viz-panel">
-      {visualization ? (
-        <>
-          <div className="viz-header">
-            <div className="viz-title">{visualization.title}</div>
-            <div className="viz-subtitle">{describeType(visualization.type)}</div>
+    <Card className="min-h-0 gap-4 overflow-y-auto py-5">
+      {loading ? (
+        <CardContent className="flex flex-1 flex-col gap-4 px-5" aria-label="Loading visualization">
+          <Skeleton className="h-5 w-56" />
+          <Skeleton className="h-3.5 w-40" />
+          <Skeleton className="min-h-64 flex-1 rounded-xl" />
+          <div className="grid grid-cols-4 gap-2.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-16" />
+            ))}
           </div>
+        </CardContent>
+      ) : visualization ? (
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`${visualization.type}-${visualization.title}`}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+            {...fade}
+          >
+            <CardHeader className="px-5">
+              <CardTitle className="text-[15px]">{visualization.title}</CardTitle>
+              {describeType(visualization.type) && (
+                <CardDescription className="text-xs">
+                  {describeType(visualization.type)}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-4 px-5">
+              {match && visualization.type === "shot_map" && (
+                <ChartLegend
+                  items={[
+                    { label: `${match.home_team} (circles)`, color: "var(--series-1)", shape: "circle" },
+                    { label: `${match.away_team} (squares)`, color: "var(--series-2)", shape: "square" },
+                  ]}
+                />
+              )}
+              {match && visualization.type === "momentum" && (
+                <ChartLegend
+                  items={[
+                    { label: match.home_team, color: "var(--series-1)", shape: "line" },
+                    { label: match.away_team, color: "var(--series-2)", shape: "line" },
+                  ]}
+                />
+              )}
 
-          {match && (visualization.type === "shot_map" || visualization.type === "momentum") && (
-            <div className="legend-row">
-              <span className="legend-item">
-                <span className="legend-swatch" style={{ background: "var(--series-1)" }} />
-                {match.home_team}
-              </span>
-              <span className="legend-item">
-                <span className="legend-swatch" style={{ background: "var(--series-2)" }} />
-                {match.away_team}
-              </span>
-            </div>
-          )}
+              {visualization.type === "shot_map" && visualization.data.shots && (
+                <div className="w-full">
+                  <ShotMap shots={visualization.data.shots} teamColors={teamColors} homeTeam={match?.home_team} />
+                </div>
+              )}
 
-          {visualization.type === "shot_map" && visualization.data.shots && (
-            <ShotMap shots={visualization.data.shots} teamColors={teamColors} />
-          )}
+              {visualization.type === "pass_network" &&
+                visualization.data.nodes &&
+                visualization.data.edges && (
+                  <div className="w-full">
+                    <PassNetwork
+                      nodes={visualization.data.nodes}
+                      edges={visualization.data.edges}
+                      team={visualization.data.team}
+                      color={
+                        visualization.data.team && teamColors[visualization.data.team]
+                          ? teamColors[visualization.data.team]
+                          : "var(--series-1)"
+                      }
+                    />
+                  </div>
+                )}
 
-          {visualization.type === "pass_network" && visualization.data.nodes && visualization.data.edges && (
-            <PassNetwork
-              nodes={visualization.data.nodes}
-              edges={visualization.data.edges}
-              color={
-                visualization.data.team && teamColors[visualization.data.team]
-                  ? teamColors[visualization.data.team]
-                  : "var(--series-1)"
-              }
-            />
-          )}
+              {visualization.type === "momentum" && visualization.data.series && (
+                <div className="w-full">
+                  <Momentum
+                    series={visualization.data.series}
+                    goals={visualization.data.goals ?? []}
+                    teamColors={teamColors}
+                  />
+                </div>
+              )}
 
-          {visualization.type === "momentum" && visualization.data.series && (
-            <Momentum
-              series={visualization.data.series}
-              goals={visualization.data.goals ?? []}
-              teamColors={teamColors}
-            />
-          )}
+              {visualization.type === "player_radar" && visualization.data.metrics && (
+                <div className="mx-auto w-full max-w-[420px]">
+                  <PlayerRadar
+                    metrics={visualization.data.metrics}
+                    color="var(--series-1)"
+                    title={visualization.title}
+                  />
+                </div>
+              )}
 
-          {visualization.type === "player_radar" && visualization.data.metrics && (
-            <PlayerRadar metrics={visualization.data.metrics} color="var(--series-1)" />
-          )}
+              {visualization.type === "none" && (
+                <div className="relative flex flex-1 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <CenterCircleMotif />
+                  <MessageSquareText className="size-6 opacity-50" aria-hidden="true" />
+                  No chart for this one — the answer's in the chat.
+                </div>
+              )}
 
-          {visualization.type === "none" && (
-            <div className="viz-empty">No chart for this question — see the written answer.</div>
-          )}
-
-          <StatsCards stats={stats} />
-        </>
+              <StatsCards stats={stats} />
+            </CardContent>
+          </motion.div>
+        </AnimatePresence>
       ) : (
-        <div className="viz-empty">Ask a question to render a visualization here.</div>
+        <CardContent className="relative flex flex-1 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+          <CenterCircleMotif />
+          <ChartSpline className="size-6 opacity-50" aria-hidden="true" />
+          Ask about the match to put it on the board.
+        </CardContent>
       )}
-    </section>
+    </Card>
   );
 }
 
 function describeType(type: Visualization["type"]) {
   switch (type) {
     case "shot_map":
-      return "Shot map — attacking half, marker size = xG";
+      return "Shot map — attacking half, marker size = xG, filled = goal";
     case "pass_network":
-      return "Pass network";
+      return "Pass network — average positions; circle size = passes made, line width = passes between the pair";
     case "momentum":
-      return "Momentum over the match";
+      return "Momentum — team involvement per 5-minute window";
     case "player_radar":
-      return "Player radar";
+      return "Player radar — each axis scaled to its own match max";
     default:
       return "";
   }

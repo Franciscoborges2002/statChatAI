@@ -4,6 +4,8 @@ import type { Shot } from "../types";
 interface Props {
   shots: Shot[];
   teamColors: Record<string, string>;
+  /** Home team gets circles; any other team gets squares (colorblind-safe cue). */
+  homeTeam?: string;
 }
 
 // StatsBomb pitch is 120x80; shots live in the attacking half (x >= 60).
@@ -30,8 +32,16 @@ function radiusForXg(xg: number) {
   return Math.min(Math.max(r, 5), 16);
 }
 
-export function ShotMap({ shots, teamColors }: Props) {
+export function ShotMap({ shots, teamColors, homeTeam }: Props) {
   const [hovered, setHovered] = useState<{ shot: Shot; px: number; py: number } | null>(null);
+
+  const ariaLabel = useMemo(() => {
+    const teams = Array.from(new Set(shots.map((s) => s.team)));
+    const goals = shots.filter((s) => s.outcome === "goal").length;
+    return teams.length
+      ? `Shot map: ${teams.join(" vs ")}, ${shots.length} shots, ${goals} goals`
+      : "Shot map, attacking half";
+  }, [shots]);
 
   const pitchMarkings = useMemo(
     () => ({
@@ -56,7 +66,7 @@ export function ShotMap({ shots, teamColors }: Props) {
         width="100%"
         height="auto"
         role="img"
-        aria-label="Shot map, attacking half"
+        aria-label={ariaLabel}
       >
         <rect x={0} y={0} width={VIEW_W} height={VIEW_H} fill="var(--pitch-fill)" rx={8} />
         {/* Halfway edge */}
@@ -109,6 +119,7 @@ export function ShotMap({ shots, teamColors }: Props) {
           const r = radiusForXg(s.xg);
           const color = teamColors[s.team] ?? "var(--series-1)";
           const isGoal = s.outcome === "goal";
+          const isSquare = homeTeam !== undefined && s.team !== homeTeam;
           return (
             <g
               key={i}
@@ -116,25 +127,44 @@ export function ShotMap({ shots, teamColors }: Props) {
               onMouseLeave={() => setHovered(null)}
               style={{ cursor: "pointer" }}
             >
-              <circle cx={cx} cy={cy} r={r + 2} fill="var(--pitch-fill)" />
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r}
-                fill={isGoal ? color : "none"}
-                stroke={color}
-                strokeWidth={isGoal ? 0 : 2}
-                opacity={isGoal ? 1 : 0.85}
-              />
+              {isSquare ? (
+                <>
+                  <rect x={cx - r - 2} y={cy - r - 2} width={2 * (r + 2)} height={2 * (r + 2)} rx={2} fill="var(--pitch-fill)" />
+                  <rect
+                    x={cx - r}
+                    y={cy - r}
+                    width={2 * r}
+                    height={2 * r}
+                    rx={2}
+                    fill={isGoal ? color : "none"}
+                    stroke={color}
+                    strokeWidth={isGoal ? 0 : 2}
+                    opacity={isGoal ? 1 : 0.85}
+                  />
+                </>
+              ) : (
+                <>
+                  <circle cx={cx} cy={cy} r={r + 2} fill="var(--pitch-fill)" />
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={r}
+                    fill={isGoal ? color : "none"}
+                    stroke={color}
+                    strokeWidth={isGoal ? 0 : 2}
+                    opacity={isGoal ? 1 : 0.85}
+                  />
+                </>
+              )}
               {isGoal && (
                 <text
                   x={cx}
                   y={cy}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={10}
+                  fontSize={11}
                   fontWeight={700}
-                  fill="#ffffff"
+                  fill="var(--background)"
                 >
                   G
                 </text>
